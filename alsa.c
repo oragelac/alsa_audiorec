@@ -14,12 +14,12 @@ void destroyAlsa(Alsa *alsa)
 {
 	snd_pcm_drain(alsa->handle);
 	snd_pcm_close(alsa->handle);
-	
+
 	if(alsa->buffer != NULL)
 	{
 		free(alsa->buffer);
 	}
-	
+
 	free(alsa);
 }
 
@@ -34,23 +34,23 @@ signed short int openPCMDevice(Alsa *alsa, Audio *audio)
 	{
 		return -1;
 	}
-	
+
 	if(audio == NULL)
 	{
 		return -1;
 	}
-	
+
 	alsa->sampleSize = audio->sampleSize;
-	
+
 	/* Open PCM device for recording (capture). */
 	alsa->rc = snd_pcm_open(&(alsa->handle), audio->deviceName, SND_PCM_STREAM_CAPTURE, 0);
-	
+
 	if (alsa->rc < 0)
 	{
 		fprintf(stderr, "Unable to open pcm device: %s\n", snd_strerror(alsa->rc));
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -88,7 +88,7 @@ signed short int setupPCMDevice(Alsa *alsa, Audio *audio)
 		fprintf(stderr, "Error setting samplerate\n");
 		return -1;
 	}
-	
+
 	if(doubleToUint(audio->deviceSamplerate) != alsa->val)
 	{
 		fprintf(stderr, "The rate %uHz is not supported by your hardware. Using %uHz instead\n", doubleToUint(audio->deviceSamplerate), alsa->val);
@@ -97,25 +97,25 @@ signed short int setupPCMDevice(Alsa *alsa, Audio *audio)
 	snd_pcm_hw_params_set_period_size_near(alsa->handle, alsa->pcmParameters, &(alsa->periodSize_frames), &(alsa->dir));
 
 	alsa->rc = snd_pcm_hw_params(alsa->handle, alsa->pcmParameters);
-	
-	if (alsa->rc < 0) 
+
+	if (alsa->rc < 0)
 	{
 		fprintf(stderr, "unable to set hw parameters: %s\n", snd_strerror(alsa->rc));
 		return -1;
 	}
-	
+
 	snd_pcm_hw_params_get_period_time(alsa->pcmParameters, &(alsa->val), &(alsa->dir));
 	alsa->periodTime = alsa->val;
 	alsa->loops = 5000000 / alsa->periodTime;
-	
+
 	snd_pcm_hw_params_get_period_size(alsa->pcmParameters, &(alsa->periodSize_frames), &(alsa->dir));
-	
+
 	alsa->frameSize = alsa->sampleSize * audio->channels;
 	alsa->periodSize = alsa->periodSize_frames * alsa->sampleSize * audio->channels;
 	alsa->periodSize_samples = alsa->periodSize_frames * audio->channels;
-	
+
 	alsa->buffer = (char *) malloc(alsa->periodSize);
-	
+
 	return 0;
 }
 
@@ -125,36 +125,36 @@ void record(Alsa *alsa, Data *data, Timestamps *timestamps)
 	{
 		alsa->rc = snd_pcm_readi(alsa->handle, alsa->buffer, alsa->periodSize_frames);
 		updateSampleCounter(alsa); // TODO take alsa->rc in account
-		
+
 		if(alsa->sampleCounter % 48000 == 0)
 		{
 			addTimestamp(timestamps);
 		}
-		
+
 		if (alsa->rc == -EPIPE)
 		{
 		  /* EPIPE means overrun */
 		  fprintf(stderr, "overrun occurred\n");
 		  snd_pcm_prepare(alsa->handle);
-		} 
-		
-		else if (alsa->rc < 0) 
+		}
+
+		else if (alsa->rc < 0)
 		{
 		  fprintf(stderr, "error from read: %s\n", snd_strerror(alsa->rc));
-		} 
-		
-		else if (alsa->rc != (int)alsa->periodSize_frames) 
+		}
+
+		else if (alsa->rc != (int)alsa->periodSize_frames)
 		{
 		  fprintf(stderr, "short read, read %d frames\n", alsa->rc);
 		}
-		
+
 		unsigned int i, j;
-		
-		if(byteArrayToInt16ArrayLE(alsa->buffer, data->samples, alsa->periodSize) == -1)
+
+		if(byteArrayToInt16ArrayLE(alsa->buffer, alsa->periodSize, data->samples) == -1)
 		{
 			fprintf(stderr, "error while converting bytes to int\n");
 		}
-		
+
 		for(i = 0, j = 0; i < alsa->periodSize / 2; i += 2, ++j)
 		{
 			int16_t l = data->samples[i];
