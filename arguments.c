@@ -69,6 +69,11 @@ void parseArgs(Arguments *arguments)
 			
 				arguments->sampleSize = (unsigned short int) strtol(optarg, &endptr, 10);
 				break;
+			
+			case 'b':
+			
+				arguments->ringbufferSize = (unsigned int) strtol(optarg, &endptr, 10);
+				break;
 		}
 		
 		opt = getopt(arguments->argc, arguments->argv, arguments->optString);

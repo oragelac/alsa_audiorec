@@ -6,9 +6,10 @@ Data* initData(unsigned int size, unsigned short int channels)
 	
 	data = malloc(sizeof(Data));
 	
-	data->size = size;
-	data->samples = malloc(data->size * sizeof(int16_t));
-	data->recombinedSamples = malloc(data->size * sizeof(int16_t) / channels);
+	data->dataSize = size;
+	data->recombinedDataSize = data->dataSize / channels;
+	data->samples = malloc(data->dataSize * sizeof(int16_t));
+	data->recombinedSamples = malloc(data->dataSize * sizeof(int16_t) / channels);
 	
 	return data;
 }

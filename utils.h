@@ -5,6 +5,7 @@
 #include <time.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <brams.h>
 
 #include "fcd.h"
 
@@ -12,7 +13,7 @@
 
 unsigned int doubleToUint(double);
 short signed int byteArrayToInt16ArrayLE(char*, size_t, int16_t*);
-int16_t* byteArrayToInt16ArrayLE(char*, size_t);
+int16_t* byteArrayToNewInt16ArrayLE(char*, size_t);
 
 // FCD
 
@@ -29,5 +30,6 @@ double timespecToMicroseconds(struct timespec*);
 double timespecToMilliseconds(struct timespec*);
 double timespecToSeconds(struct timespec*);
 inline void waitUntilNextSecond();
+BramsTime convert_timespec_to_BramsTime(struct timespec);
 
 #endif

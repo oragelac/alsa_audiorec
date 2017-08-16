@@ -10,6 +10,7 @@
 #include "data.h"
 #include "utils.h"
 #include "timestamps.h"
+#include "ringbuffer.h"
 
 typedef struct
 {
@@ -25,15 +26,14 @@ typedef struct
 	unsigned int frameSize;
 	unsigned int sampleSize;
 	unsigned int periodTime;
-	unsigned long loops;
 	unsigned long sampleCounter;
 } Alsa;
 
 Alsa* initAlsa(unsigned int);
 void destroyAlsa(Alsa*);
-void updateSampleCounter(Alsa*);
+void updateSampleCounter(Alsa*, int);
 signed short int openPCMDevice(Alsa*, Audio*);
 signed short int setupPCMDevice(Alsa*, Audio*);
-void record(Alsa*, Data*, Timestamps*);
+void record(Alsa*, Audio*, Data*, Timestamps*, RingbufferInt16*);
 
 #endif

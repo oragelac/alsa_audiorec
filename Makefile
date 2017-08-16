@@ -1,24 +1,24 @@
 CC=gcc
 CFLAGS=-Wall -O2
-LDLIBS=-lasound -lusb-1.0 -lpthread -lm
-EXEC=record
+LDLIBS=-lasound -lusb-1.0 -lpthread -lm libbrams/src/.libs/libbrams.a libbrams/sndfile/src/.libs/libsndfile.a
+EXEC=alsa_audiorec
 
 all: $(EXEC)
 
-record: record.o alsa.o audiodevice.o utils.o arguments.o data.o timestamps.o hid-libusb.o fcd.o
+$(EXEC): alsa.o audiodevice.o utils.o arguments.o data.o timestamps.o writefilethread.o ringbuffer.o hid-libusb.o fcd.o main.o
 	$(CC) -o $@ $^ $(LDLIBS)
 	
-record.o: record.c
-	$(CC) -o $@ -c $< $(CFLAGS)
+main.o: main.c 
+	$(CC) -o $@ -c $< $(CFLAGS) -I libbrams/src
 
 alsa.o: alsa.c alsa.h audiodevice.h
-	$(CC) -o $@ -c $< $(CFLAGS)
+	$(CC) -o $@ -c $< $(CFLAGS) -I libbrams/src
 	
 audiodevice.o: audiodevice.c audiodevice.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 	
 utils.o: utils.c utils.h
-	$(CC) -o $@ -c $< $(CFLAGS)
+	$(CC) -o $@ -c $< $(CFLAGS) -I libbrams/src
 	
 arguments.o: arguments.c arguments.h
 	$(CC) -o $@ -c $< $(CFLAGS)
@@ -27,6 +27,12 @@ data.o: data.c data.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 timestamps.o: timestamps.c timestamps.h
+	$(CC) -o $@ -c $< $(CFLAGS) -I libbrams/src
+	
+writefilethread.o: writefilethread.c writefilethread.h
+	$(CC) -o $@ -c $< $(CFLAGS) -I libbrams/src
+
+ringbuffer.o: ringbuffer.c ringbuffer.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 	
 hid-libusb.o: hid-libusb.c
@@ -34,6 +40,10 @@ hid-libusb.o: hid-libusb.c
 	
 fcd.o: fcd.c fcd.h 
 	$(CC) -o $@ -c $< $(CFLAGS) -DFCDPP
+	
+libbrams/src/.libs/libbrams.a:
+	cd libbrams && ./configure
+	make -C libbrams
 	
 clean: 
 	rm -rf ./*.o

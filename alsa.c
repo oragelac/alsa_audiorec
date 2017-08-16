@@ -23,9 +23,9 @@ void destroyAlsa(Alsa *alsa)
 	free(alsa);
 }
 
-void updateSampleCounter(Alsa *alsa)
+void updateSampleCounter(Alsa *alsa, int samplesRead)
 {
-	alsa->sampleCounter += alsa->periodSize_frames;
+	alsa->sampleCounter += samplesRead;
 }
 
 signed short int openPCMDevice(Alsa *alsa, Audio *audio)
@@ -106,7 +106,6 @@ signed short int setupPCMDevice(Alsa *alsa, Audio *audio)
 
 	snd_pcm_hw_params_get_period_time(alsa->pcmParameters, &(alsa->val), &(alsa->dir));
 	alsa->periodTime = alsa->val;
-	alsa->loops = 5000000 / alsa->periodTime;
 
 	snd_pcm_hw_params_get_period_size(alsa->pcmParameters, &(alsa->periodSize_frames), &(alsa->dir));
 
@@ -119,14 +118,14 @@ signed short int setupPCMDevice(Alsa *alsa, Audio *audio)
 	return 0;
 }
 
-void record(Alsa *alsa, Data *data, Timestamps *timestamps)
+void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, RingbufferInt16 *ringbuffer)
 {
-	while (alsa->sampleCounter < 14400000)
+	while (alsa->sampleCounter <= audio->deviceSamplerate * 300)
 	{
 		alsa->rc = snd_pcm_readi(alsa->handle, alsa->buffer, alsa->periodSize_frames);
-		updateSampleCounter(alsa); // TODO take alsa->rc in account
-
-		if(alsa->sampleCounter % 48000 == 0)
+		updateSampleCounter(alsa, alsa->rc);
+		
+		if(alsa->sampleCounter % (long unsigned int) audio->deviceSamplerate == 0)
 		{
 			addTimestamp(timestamps);
 		}
@@ -161,5 +160,7 @@ void record(Alsa *alsa, Data *data, Timestamps *timestamps)
 			int16_t r = data->samples[i + 1];
 			data->recombinedSamples[j] = (int16_t) sqrt((l * l) + (r * r));
 		}
+		
+		writeData(ringbuffer, data->recombinedSamples, data->recombinedDataSize);
 	}
 }

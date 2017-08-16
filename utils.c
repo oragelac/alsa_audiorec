@@ -26,7 +26,7 @@ short signed int byteArrayToInt16ArrayLE(char *src, size_t srcSize, int16_t *dst
 	return 0;
 }
 
-int16_t* byteArrayToInt16ArrayLE(char *src, size_t srcSize)
+int16_t* byteArrayToNewInt16ArrayLE(char *src, size_t srcSize)
 {
 	unsigned int i;
 	int16_t *dst = NULL;
@@ -152,4 +152,9 @@ inline void waitUntilNextSecond()
 
 	free(currentTime);
 	free(previousTime);
+}
+
+BramsTime convert_timespec_to_BramsTime(struct timespec ts)
+{
+	return ((BramsTime)ts.tv_sec * (BramsTime)1000000) + ((BramsTime)ts.tv_nsec / (BramsTime)1000);		
 }

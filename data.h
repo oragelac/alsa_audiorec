@@ -6,7 +6,8 @@
 
 typedef struct
 {
-	unsigned int size;
+	unsigned int dataSize;
+	unsigned int recombinedDataSize;
 	int16_t *samples;
 	int16_t *recombinedSamples;
 } Data;
