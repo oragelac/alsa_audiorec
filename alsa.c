@@ -124,10 +124,13 @@ void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, Ringbu
 	{
 		alsa->rc = snd_pcm_readi(alsa->handle, alsa->buffer, alsa->periodSize_frames);
 		updateSampleCounter(alsa, alsa->rc);
-		
-		if(alsa->sampleCounter % (long unsigned int) audio->deviceSamplerate == 0)
+
+		if(alsa->sampleCounter % (unsigned long int) audio->deviceSamplerate == 0)
 		{
-			addTimestamp(timestamps);
+			if(addTimestamp(timestamps, alsa->sampleCounter) == -1)
+			{
+				fprintf(stderr, "Not enough space to save new timestamp\n");
+			}
 		}
 
 		if (alsa->rc == -EPIPE)
@@ -160,7 +163,7 @@ void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, Ringbu
 			int16_t r = data->samples[i + 1];
 			data->recombinedSamples[j] = (int16_t) sqrt((l * l) + (r * r));
 		}
-		
+
 		writeData(ringbuffer, data->recombinedSamples, data->recombinedDataSize);
 	}
 }

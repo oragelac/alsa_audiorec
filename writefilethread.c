@@ -3,7 +3,7 @@
 WriteFileThread* initWriteFileThread(RingbufferInt16 *ringbuffer, Audio *audio, Timestamps *timestamps)
 {
 	WriteFileThread *writefilethread = NULL;
-	
+
 	writefilethread = malloc(sizeof(WriteFileThread));
 	writefilethread->ringbuffer = ringbuffer;
 	writefilethread->audio = audio;
@@ -11,12 +11,12 @@ WriteFileThread* initWriteFileThread(RingbufferInt16 *ringbuffer, Audio *audio, 
 	writefilethread->stop = 0;
 	writefilethread->fileout = NULL;
 	writefilethread->fileerror = NULL;
-	
+
 	return writefilethread;
 }
 
 void destroyWriteFileThread(WriteFileThread *writefilethread)
-{	
+{
 	free(writefilethread);
 }
 
@@ -32,7 +32,7 @@ void* run(void *args)
 {
 	BramsPPS *bramspps = malloc(301 * sizeof(BramsPPS));
 	WriteFileThread *writefilethread = (WriteFileThread*) args;
-	
+
 	memset(&writefilethread->fileinfo, 0, sizeof(BramsFileInfo));
 	writefilethread->fileinfo.version = 4;
 	writefilethread->fileinfo.sample_rate = writefilethread->audio->waveSamplerate;
@@ -47,13 +47,13 @@ void* run(void *args)
 	writefilethread->fileinfo.beacon_polarisation = BRAMS_RHCP;
 	strcpy(writefilethread->fileinfo.beacon_code, "BEDOUR");
 	strcpy(writefilethread->fileinfo.station_code, "TEST00");
-	
+
 	writefilethread->fileout = brams_open_file("test.wav", BRAMS_FILE_WRITE, &writefilethread->fileinfo, &writefilethread->fileerror);
-	
-	
+
+
 	int16_t *data;
 	data = malloc(writefilethread->ringbuffer->dataSize * sizeof(int16_t));
-	
+
 	while(writefilethread->stop != 1)
 	{
 		if(readData(writefilethread->ringbuffer, data, writefilethread->ringbuffer->dataSize))
@@ -61,25 +61,25 @@ void* run(void *args)
 			brams_write_short(writefilethread->fileout, data, writefilethread->ringbuffer->dataSize);
 		}
 	}
-	
+
 	if(brams_write_info(writefilethread->fileout, &writefilethread->fileinfo, NULL) == -1)
 	{
 		fprintf(stderr, "Error : could not write file info in file\n");
 	}
-	
+
 	unsigned int i;
-	for(i = 0; i < writefilethread->timestamps->nextPos; ++i)
+	for(i = 0; i < writefilethread->timestamps->nextPos; ++i) // use memcpy ?
 	{
-		bramspps[i].position = 0;
-		bramspps[i].time = convert_timespec_to_BramsTime(writefilethread->timestamps->data[i]);
+		bramspps[i].position = writefilethread->timestamps->pos[i];
+		bramspps[i].time = timespecToBramsTime(writefilethread->timestamps->data[i]);
 	}
-	
+
 	if(brams_write_pps(writefilethread->fileout, bramspps, writefilethread->timestamps->nextPos) == -1)
 	{
 		fprintf(stderr, "Error : could not save PPS in file\n");
 	}
-					
-	
+
+
 	brams_close_file(writefilethread->fileout);
 	writefilethread->fileout = NULL;
 	free(data);
@@ -90,7 +90,7 @@ void* run(void *args)
 void stopWriteFileThread(WriteFileThread *writefilethread)
 {
 	writefilethread->stop = 1;
-	
+
 	if(pthread_join(writefilethread->thread, NULL))
 	{
 		fprintf(stderr, "Error while joining filewrite thread\n");

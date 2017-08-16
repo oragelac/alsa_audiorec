@@ -30,6 +30,6 @@ double timespecToMicroseconds(struct timespec*);
 double timespecToMilliseconds(struct timespec*);
 double timespecToSeconds(struct timespec*);
 inline void waitUntilNextSecond();
-BramsTime convert_timespec_to_BramsTime(struct timespec);
+BramsTime timespecToBramsTime(struct timespec*);
 
 #endif

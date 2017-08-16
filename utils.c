@@ -154,7 +154,7 @@ inline void waitUntilNextSecond()
 	free(previousTime);
 }
 
-BramsTime convert_timespec_to_BramsTime(struct timespec ts)
+BramsTime timespecToBramsTime(struct timespec *ts)
 {
-	return ((BramsTime)ts.tv_sec * (BramsTime)1000000) + ((BramsTime)ts.tv_nsec / (BramsTime)1000);		
+	return ((BramsTime)ts->tv_sec * (BramsTime)1000000) + ((BramsTime)ts->tv_nsec / (BramsTime)1000);
 }

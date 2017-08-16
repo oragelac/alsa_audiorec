@@ -9,12 +9,13 @@
 typedef struct
 {
 	struct timespec *data;
+	unsigned long int *pos;
 	unsigned int dataSize;
 	unsigned int nextPos;
 } Timestamps;
 
 Timestamps* initTimestamps(unsigned int);
 void destroyTimeStamps(Timestamps*);
-signed short int addTimestamp(Timestamps*);
+signed short int addTimestamp(Timestamps*, unsigned long int);
 
 #endif
