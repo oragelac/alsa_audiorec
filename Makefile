@@ -5,7 +5,7 @@ EXEC=alsa_audiorec
 
 all: $(EXEC)
 
-$(EXEC): alsa.o audiodevice.o utils.o arguments.o data.o timestamps.o writefilethread.o ringbuffer.o hid-libusb.o fcd.o main.o
+$(EXEC): alsa.o audiodevice.o utils.o arguments.o data.o timestamps.o writefilethread.o ringbuffer.o timethread.o hid-libusb.o fcd.o main.o
 	$(CC) -o $@ $^ $(LDLIBS)
 	
 main.o: main.c 
@@ -34,6 +34,9 @@ writefilethread.o: writefilethread.c writefilethread.h
 
 ringbuffer.o: ringbuffer.c ringbuffer.h
 	$(CC) -o $@ -c $< $(CFLAGS)
+	
+timethread.o: timethread.c timethread.h
+	$(CC) -o $@ -c $< $(CFLAGS) -I libbrams/src
 	
 hid-libusb.o: hid-libusb.c
 	$(CC) -o $@ -c $< $(CFLAGS) -I/usr/include/libusb-1.0

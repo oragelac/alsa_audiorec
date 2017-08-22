@@ -1,12 +1,13 @@
 #include "alsa.h"
 
-Alsa* initAlsa(unsigned int periodSize_frames)
+Alsa* initAlsa(unsigned int periodSize_frames, unsigned int duration)
 {
 	Alsa* alsa = NULL;
 	alsa = malloc(sizeof(Alsa));
 	alsa->buffer = NULL;
 	alsa->periodSize_frames = periodSize_frames;
 	alsa->sampleCounter = 0;
+	alsa->duration = duration;
 	return alsa;
 }
 
@@ -95,14 +96,19 @@ signed short int setupPCMDevice(Alsa *alsa, Audio *audio)
 	}
 
 	snd_pcm_hw_params_set_period_size_near(alsa->handle, alsa->pcmParameters, &(alsa->periodSize_frames), &(alsa->dir));
-
+	printf("Period size : %ld\n", alsa->periodSize_frames);
+	
+	
 	alsa->rc = snd_pcm_hw_params(alsa->handle, alsa->pcmParameters);
-
+	
 	if (alsa->rc < 0)
 	{
 		fprintf(stderr, "unable to set hw parameters: %s\n", snd_strerror(alsa->rc));
 		return -1;
 	}
+	
+	snd_pcm_hw_params_get_buffer_size(alsa->pcmParameters, &alsa->bufferSize);
+	printf("Buffer size : %ld\n", alsa->bufferSize);
 
 	snd_pcm_hw_params_get_period_time(alsa->pcmParameters, &(alsa->val), &(alsa->dir));
 	alsa->periodTime = alsa->val;
@@ -118,19 +124,21 @@ signed short int setupPCMDevice(Alsa *alsa, Audio *audio)
 	return 0;
 }
 
-void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, RingbufferInt16 *ringbuffer)
+void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, RingbufferInt16 *ringbuffer, TimeThread* timethread)
 {
-	while (alsa->sampleCounter <= audio->deviceSamplerate * 300)
+	while (alsa->sampleCounter <= audio->deviceSamplerate * alsa->duration)
 	{
 		alsa->rc = snd_pcm_readi(alsa->handle, alsa->buffer, alsa->periodSize_frames);
 		updateSampleCounter(alsa, alsa->rc);
-
-		if(alsa->sampleCounter % (unsigned long int) audio->deviceSamplerate == 0)
-		{
-			if(addTimestamp(timestamps, alsa->sampleCounter) == -1)
+		
+		if(timethread->newSecond == 1)
+		{			
+			if(saveTimestamp(timestamps, alsa->sampleCounter, timethread->timestamp) == -1)
 			{
 				fprintf(stderr, "Not enough space to save new timestamp\n");
 			}
+			
+			timethread->newSecond = 0;
 		}
 
 		if (alsa->rc == -EPIPE)
@@ -149,7 +157,7 @@ void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, Ringbu
 		{
 		  fprintf(stderr, "short read, read %d frames\n", alsa->rc);
 		}
-
+		
 		unsigned int i, j;
 
 		if(byteArrayToInt16ArrayLE(alsa->buffer, alsa->periodSize, data->samples) == -1)
@@ -159,11 +167,12 @@ void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, Ringbu
 
 		for(i = 0, j = 0; i < alsa->periodSize / 2; i += 2, ++j)
 		{
-			int16_t l = data->samples[i];
-			int16_t r = data->samples[i + 1];
+			double l = data->samples[i];
+			double r = data->samples[i + 1];
 			data->recombinedSamples[j] = (int16_t) sqrt((l * l) + (r * r));
 		}
 
 		writeData(ringbuffer, data->recombinedSamples, data->recombinedDataSize);
+		
 	}
 }

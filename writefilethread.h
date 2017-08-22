@@ -10,6 +10,7 @@
 #include "audiodevice.h"
 #include "timestamps.h"
 #include "utils.h"
+#include "alsa.h"
 
 typedef struct
 {
@@ -18,12 +19,13 @@ typedef struct
 	RingbufferInt16 *ringbuffer;
 	Audio *audio;
 	Timestamps *timestamps;
+	Alsa *alsa;
 	BramsFile *fileout;
 	BramsFileInfo fileinfo;
 	BramsError *fileerror;
 } WriteFileThread;
 
-WriteFileThread* initWriteFileThread(RingbufferInt16*, Audio*, Timestamps*);
+WriteFileThread* initWriteFileThread(RingbufferInt16*, Audio*, Timestamps*, Alsa*);
 void destroyWriteFileThread(WriteFileThread*);
 void startWriteFileThread(WriteFileThread*);
 void stopWriteFileThread(WriteFileThread*);

@@ -14,11 +14,10 @@ typedef struct
 	unsigned int writePtr;
 	unsigned int readPtr;
 	unsigned int freeSpace;
-	unsigned int sleepTime_us;
 
 } RingbufferInt16;
 
-RingbufferInt16* initRingbufferInt16(unsigned int, unsigned int, unsigned int);
+RingbufferInt16* initRingbufferInt16(unsigned int, unsigned int);
 void destroyRingbufferInt16(RingbufferInt16*);
 unsigned int writeData(RingbufferInt16*, int16_t*, unsigned int);
 unsigned int readData(RingbufferInt16*, int16_t*, unsigned int);

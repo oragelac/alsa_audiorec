@@ -12,6 +12,7 @@
 #include "timestamps.h"
 #include "writefilethread.h"
 #include "ringbuffer.h"
+#include "timethread.h"
 
 int main(int argc, char **argv) 
 {
@@ -22,12 +23,14 @@ int main(int argc, char **argv)
 	Timestamps *timestamps = NULL;
 	WriteFileThread *writefilethread = NULL;
 	RingbufferInt16 *ringbuffer = NULL;
+	TimeThread *timethread = NULL;
 	
-	args = initArguments(argc, argv, "d:f:r:w:c:s:b:");
+	args = initArguments(argc, argv, "d:f:r:w:c:s:b:t:p:");
 	parseArgs(args);
 	audio = initAudio(args->deviceName, args->frequency, args->samplerate, args->waveSamplerate, args->channels, args->sampleSize);
-	alsa = initAlsa(48);
-	timestamps = initTimestamps(301);
+	alsa = initAlsa(args->periodSize, args->duration);
+	timestamps = initTimestamps(args->duration + 1);
+	timethread = initTimeThread();
 	
 	if(setFCDFrequency(audio->deviceFrequency) < 0)
 	{
@@ -45,34 +48,19 @@ int main(int argc, char **argv)
 	}
 	
 	data = initData(alsa->periodSize / alsa->sampleSize, audio->channels);
-	ringbuffer = initRingbufferInt16(args->ringbufferSize, data->recombinedDataSize, 500);
-	writefilethread = initWriteFileThread(ringbuffer, audio, timestamps);
+	ringbuffer = initRingbufferInt16(args->ringbufferSize, data->recombinedDataSize);
+	writefilethread = initWriteFileThread(ringbuffer, audio, timestamps, alsa);
 	startWriteFileThread(writefilethread);
 	waitUntilNextSecond();
-	record(alsa, audio, data, timestamps, ringbuffer);
+	startTimeThread(timethread);
+	record(alsa, audio, data, timestamps, ringbuffer, timethread);
 	
 	printf("%d saved timestamps\n", timestamps->nextPos);
 	
-	
-	unsigned int i;
-	struct timespec diff;
-	
-	for(i = 0; i < timestamps->nextPos; ++i)
-	{
-		if(i > 0)
-		{
-			timespecDiff(&timestamps->data[i - 1], &timestamps->data[i], &diff);
-			printf("%lf\t\t%lf\n", timespecToSeconds(&timestamps->data[i]), timespecToSeconds(&diff));
-		}
-		else
-		{
-			printf("%lf\n", timespecToSeconds(&timestamps->data[i]));
-		}
-	}
-	
-	
+	stopTimeThread(timethread);
 	stopWriteFileThread(writefilethread);
 	
+	destroyTimeThread(timethread);
 	destroyWriteFileThread(writefilethread);
 	destroyTimeStamps(timestamps);
 	destroyData(data);

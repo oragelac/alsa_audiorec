@@ -1,6 +1,6 @@
 #include "writefilethread.h"
 
-WriteFileThread* initWriteFileThread(RingbufferInt16 *ringbuffer, Audio *audio, Timestamps *timestamps)
+WriteFileThread* initWriteFileThread(RingbufferInt16 *ringbuffer, Audio *audio, Timestamps *timestamps, Alsa *alsa)
 {
 	WriteFileThread *writefilethread = NULL;
 
@@ -8,6 +8,7 @@ WriteFileThread* initWriteFileThread(RingbufferInt16 *ringbuffer, Audio *audio, 
 	writefilethread->ringbuffer = ringbuffer;
 	writefilethread->audio = audio;
 	writefilethread->timestamps = timestamps;
+	writefilethread->alsa = alsa;
 	writefilethread->stop = 0;
 	writefilethread->fileout = NULL;
 	writefilethread->fileerror = NULL;
@@ -30,7 +31,7 @@ void startWriteFileThread(WriteFileThread *writefilethread)
 
 void* run(void *args)
 {
-	BramsPPS *bramspps = malloc(301 * sizeof(BramsPPS));
+	BramsPPS *bramspps = malloc(300 * sizeof(BramsPPS));
 	WriteFileThread *writefilethread = (WriteFileThread*) args;
 
 	memset(&writefilethread->fileinfo, 0, sizeof(BramsFileInfo));
@@ -48,16 +49,29 @@ void* run(void *args)
 	strcpy(writefilethread->fileinfo.beacon_code, "BEDOUR");
 	strcpy(writefilethread->fileinfo.station_code, "TEST00");
 
-	writefilethread->fileout = brams_open_file("test.wav", BRAMS_FILE_WRITE, &writefilethread->fileinfo, &writefilethread->fileerror);
 
-
+	short unsigned int isFileOpened = 0;
 	int16_t *data;
+	char filename[200];
+	const char* fmt = "RAD_BEDOUR_%Y%m%d_%H%M_TEST00_SYS001.wav";
 	data = malloc(writefilethread->ringbuffer->dataSize * sizeof(int16_t));
+	unsigned int i;
 
 	while(writefilethread->stop != 1)
 	{
 		if(readData(writefilethread->ringbuffer, data, writefilethread->ringbuffer->dataSize))
 		{
+			if(isFileOpened == 0)
+			{
+				struct tm *tmp;
+				struct timespec ts;
+				getTime(&ts);
+				tmp = gmtime(&ts.tv_sec);
+				strftime(filename, sizeof(filename), fmt, tmp);
+				writefilethread->fileout = brams_open_file(filename, BRAMS_FILE_WRITE, &writefilethread->fileinfo, &writefilethread->fileerror);
+				isFileOpened = 1;
+			}
+			
 			brams_write_short(writefilethread->fileout, data, writefilethread->ringbuffer->dataSize);
 		}
 	}
@@ -66,19 +80,22 @@ void* run(void *args)
 	{
 		fprintf(stderr, "Error : could not write file info in file\n");
 	}
-
-	unsigned int i;
-	for(i = 0; i < writefilethread->timestamps->nextPos; ++i) // use memcpy ?
+	
+	for(i = 0; i < writefilethread->timestamps->nextPos; ++i)
 	{
 		bramspps[i].position = writefilethread->timestamps->pos[i];
-		bramspps[i].time = timespecToBramsTime(writefilethread->timestamps->data[i]);
-	}
+		double g = (double)writefilethread->timestamps->data[i].tv_nsec * 1e-9;
+		double h = (lround(g) - g) * writefilethread->audio->waveSamplerate;
+		writefilethread->timestamps->data[i].tv_nsec = 0;
+		writefilethread->timestamps->data[i].tv_sec += (lround(g) - g);
+		bramspps[i].time = timespecToBramsTime(&writefilethread->timestamps->data[i]);
+		bramspps[i].position = (BramsCount) (bramspps[i].position + h);					
+	}	
 
 	if(brams_write_pps(writefilethread->fileout, bramspps, writefilethread->timestamps->nextPos) == -1)
 	{
 		fprintf(stderr, "Error : could not save PPS in file\n");
 	}
-
 
 	brams_close_file(writefilethread->fileout);
 	writefilethread->fileout = NULL;

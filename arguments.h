@@ -17,7 +17,9 @@ typedef struct
 	double waveSamplerate;
 	unsigned short int channels;
 	unsigned short int sampleSize;
-	unsigned int ringbufferSize;	
+	unsigned int ringbufferSize;
+	unsigned int duration;
+	unsigned short int periodSize;	
 } Arguments;
 
 Arguments* initArguments(int, char**, char*);
