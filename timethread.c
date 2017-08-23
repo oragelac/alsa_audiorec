@@ -57,6 +57,11 @@ void* runTimeThread(void *args)
 	{
 		if(timethread->timestamp->tv_sec != timethread->prev_timestamp->tv_sec)
 		{
+			if(timethread->newSecond == 1)
+			{
+				printf("timestamp was not used\n");
+			}
+			
 			timethread->newSecond = 1;
 			clock_gettime(CLOCK_REALTIME, timethread->timestamp);
 		}

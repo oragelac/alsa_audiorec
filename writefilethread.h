@@ -23,6 +23,7 @@ typedef struct
 	BramsFile *fileout;
 	BramsFileInfo fileinfo;
 	BramsError *fileerror;
+	BramsPPS *bramspps;
 } WriteFileThread;
 
 WriteFileThread* initWriteFileThread(RingbufferInt16*, Audio*, Timestamps*, Alsa*);

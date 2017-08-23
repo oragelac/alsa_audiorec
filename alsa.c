@@ -133,7 +133,7 @@ void record(Alsa *alsa, Audio *audio, Data *data, Timestamps *timestamps, Ringbu
 		
 		if(timethread->newSecond == 1)
 		{			
-			if(saveTimestamp(timestamps, alsa->sampleCounter, timethread->timestamp) == -1)
+			if(addTimestamp(timestamps, alsa->sampleCounter, timethread->timestamp) == -1)
 			{
 				fprintf(stderr, "Not enough space to save new timestamp\n");
 			}

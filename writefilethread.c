@@ -12,12 +12,18 @@ WriteFileThread* initWriteFileThread(RingbufferInt16 *ringbuffer, Audio *audio, 
 	writefilethread->stop = 0;
 	writefilethread->fileout = NULL;
 	writefilethread->fileerror = NULL;
+	writefilethread->bramspps = malloc(alsa->duration * sizeof(BramsPPS));
 
 	return writefilethread;
 }
 
 void destroyWriteFileThread(WriteFileThread *writefilethread)
 {
+	if(writefilethread->bramspps != NULL)
+	{
+		free(writefilethread->bramspps);
+	}
+	
 	free(writefilethread);
 }
 
@@ -31,7 +37,6 @@ void startWriteFileThread(WriteFileThread *writefilethread)
 
 void* run(void *args)
 {
-	BramsPPS *bramspps = malloc(300 * sizeof(BramsPPS));
 	WriteFileThread *writefilethread = (WriteFileThread*) args;
 
 	memset(&writefilethread->fileinfo, 0, sizeof(BramsFileInfo));
@@ -68,6 +73,7 @@ void* run(void *args)
 				getTime(&ts);
 				tmp = gmtime(&ts.tv_sec);
 				strftime(filename, sizeof(filename), fmt, tmp);
+				printf("%s\n", filename);
 				writefilethread->fileout = brams_open_file(filename, BRAMS_FILE_WRITE, &writefilethread->fileinfo, &writefilethread->fileerror);
 				isFileOpened = 1;
 			}
@@ -83,16 +89,16 @@ void* run(void *args)
 	
 	for(i = 0; i < writefilethread->timestamps->nextPos; ++i)
 	{
-		bramspps[i].position = writefilethread->timestamps->pos[i];
+		writefilethread->bramspps[i].position = writefilethread->timestamps->pos[i];
 		double g = (double)writefilethread->timestamps->data[i].tv_nsec * 1e-9;
 		double h = (lround(g) - g) * writefilethread->audio->waveSamplerate;
 		writefilethread->timestamps->data[i].tv_nsec = 0;
 		writefilethread->timestamps->data[i].tv_sec += (lround(g) - g);
-		bramspps[i].time = timespecToBramsTime(&writefilethread->timestamps->data[i]);
-		bramspps[i].position = (BramsCount) (bramspps[i].position + h);					
+		writefilethread->bramspps[i].time = timespecToBramsTime(&writefilethread->timestamps->data[i]);
+		writefilethread->bramspps[i].position = (BramsCount) (writefilethread->bramspps[i].position + h);					
 	}	
 
-	if(brams_write_pps(writefilethread->fileout, bramspps, writefilethread->timestamps->nextPos) == -1)
+	if(brams_write_pps(writefilethread->fileout, writefilethread->bramspps, writefilethread->timestamps->nextPos) == -1)
 	{
 		fprintf(stderr, "Error : could not save PPS in file\n");
 	}
@@ -100,7 +106,6 @@ void* run(void *args)
 	brams_close_file(writefilethread->fileout);
 	writefilethread->fileout = NULL;
 	free(data);
-	free(bramspps);
 	return NULL;
 }
 

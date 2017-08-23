@@ -8,7 +8,7 @@ Timestamps* initTimestamps(unsigned int dataSize)
 	timestamps->nextPos = 0;
 	timestamps->dataSize = dataSize;
 	timestamps->data = malloc(dataSize * sizeof(struct timespec));
-	timestamps->pos = malloc(dataSize * sizeof(unsigned long));
+	timestamps->pos = malloc(dataSize * sizeof(int64_t));
 	timestamps->filenameSize = 200 * sizeof(char);
 	timestamps->filename = malloc(timestamps->filenameSize);
 
@@ -35,20 +35,7 @@ void destroyTimeStamps(Timestamps *timestamps)
 	free(timestamps);
 }
 
-signed short int addTimestamp(Timestamps *timestamps, unsigned long pos)
-{
-	if(timestamps->nextPos < timestamps->dataSize)
-	{
-		getTime(&timestamps->data[timestamps->nextPos]);
-		timestamps->pos[timestamps->nextPos]  = pos;
-		timestamps->nextPos++;
-		return 0;
-	}
-
-	return -1;
-}
-
-signed short int saveTimestamp(Timestamps *timestamps, unsigned long pos, struct timespec *timestamp)
+signed short int addTimestamp(Timestamps *timestamps, int64_t pos, struct timespec *timestamp)
 {
 	if(timestamps->nextPos < timestamps->dataSize)
 	{

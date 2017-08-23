@@ -28,7 +28,7 @@ typedef struct
 	unsigned int frameSize;
 	unsigned int sampleSize;
 	unsigned int periodTime;
-	unsigned long sampleCounter;
+	int64_t sampleCounter;
 	unsigned int duration;
 } Alsa;
 
